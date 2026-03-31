@@ -1,4 +1,15 @@
 {
   "name": "SmartLife",
-  "displayName": "SmartLife"
+  "displayName": "SmartLife",
+  "version": "1.0.0",
+  "icon": "./src/assets/app-icon/icon-light-source-1024.png",
+  "ios": {
+    "supportsTablet": true
+  },
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./src/assets/app-icon/icon-light-source-1024.png",
+      "backgroundColor": "#ffffff"
+    }
+  }
 }

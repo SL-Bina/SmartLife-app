@@ -38,6 +38,10 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
     self.bundleURL()
   }
 
+  override func bridgelessEnabled() -> Bool {
+    false
+  }
+
   override func bundleURL() -> URL? {
 #if DEBUG
     RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")

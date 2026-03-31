@@ -1,0 +1,33 @@
+{
+  "common": {
+    "brandName": "SmartLife",
+    "tagline": "Həmişə İnnovativ",
+    "ok": "OK",
+    "cancel": "Ləğv et",
+    "error": "Xəta"
+  },
+  "theme": {
+    "light": "light",
+    "dark": "dark",
+    "system": "system"
+  },
+  "login": {
+    "emailLabel": "Email, İstifadəçi adı, Telefon və ya Ad",
+    "emailPlaceholder": "Emailinizi daxil edin",
+    "passwordLabel": "Parol",
+    "passwordPlaceholder": "Parolinizi daxil edin",
+    "loginButton": "DAXIL OL",
+    "signingInButton": "DAXİL OLUNUR...",
+    "footerText": "Premium Təhlükəlik. Enterprise Səviyyə."
+  },
+  "dashboard": {
+    "title": "Home",
+    "subtitle": "İdarəetmə üçün əsas ana səhifə",
+    "logout": "Çıxış"
+  },
+  "resident": {
+    "title": "Resident Panel",
+    "subtitle": "Bu bölmədə profil, mənzil və ödəmə modulları əlavə edilə bilər",
+    "logout": "Çıxış"
+  }
+}

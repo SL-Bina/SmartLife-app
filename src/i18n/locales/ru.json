@@ -1,0 +1,33 @@
+{
+  "common": {
+    "brandName": "SmartLife",
+    "tagline": "Всегда инновационируем",
+    "ok": "OK",
+    "cancel": "Отмена",
+    "error": "Ошибка"
+  },
+  "theme": {
+    "light": "light",
+    "dark": "dark",
+    "system": "system"
+  },
+  "login": {
+    "emailLabel": "Электронная почта, имя пользователя, телефон или имя",
+    "emailPlaceholder": "Введите вашу электронную почту",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Введите ваш пароль",
+    "loginButton": "ВХОД",
+    "signingInButton": "ВХОД...",
+    "footerText": "Премиум безопасность. Корпоративный уровень."
+  },
+  "dashboard": {
+    "title": "Главная",
+    "subtitle": "Основная домашняя страница для управления",
+    "logout": "Выход"
+  },
+  "resident": {
+    "title": "Панель жителя",
+    "subtitle": "Здесь можно добавить модули профиля, квартиры и платежей",
+    "logout": "Выход"
+  }
+}

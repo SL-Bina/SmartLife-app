@@ -34,7 +34,9 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>Current location is used to pick exact map coordinates for MTK records.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required to scan QR codes for SmartLife web login.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

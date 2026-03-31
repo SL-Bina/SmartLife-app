@@ -1,0 +1,33 @@
+{
+  "common": {
+    "brandName": "SmartLife",
+    "tagline": "Always Innovating",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "error": "Error"
+  },
+  "theme": {
+    "light": "light",
+    "dark": "dark",
+    "system": "system"
+  },
+  "login": {
+    "emailLabel": "Email, Username, Phone or Name",
+    "emailPlaceholder": "Enter your email",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "loginButton": "LOGIN",
+    "signingInButton": "SIGNING IN...",
+    "footerText": "Premium Security. Enterprise Grade."
+  },
+  "dashboard": {
+    "title": "Home",
+    "subtitle": "Main home screen for daily management",
+    "logout": "Logout"
+  },
+  "resident": {
+    "title": "Resident Panel",
+    "subtitle": "Profile, apartment and payment modules can be added here",
+    "logout": "Logout"
+  }
+}
