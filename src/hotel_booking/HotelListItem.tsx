@@ -8,13 +8,34 @@ import {
   ListRenderItemInfo,
   useWindowDimensions,
 } from 'react-native';
-import RatingBar from '@aashu-dubey/react-native-rating-bar';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Heart, MapPin, Star, StarHalf } from 'lucide-react-native';
 import { HotelListType } from './model/hotel_list_data';
 
 interface Props {
   data: ListRenderItemInfo<HotelListType>;
 }
+
+const renderRatingStars = (rating: number) => {
+  const safeRating = Math.max(0, Math.min(5, Number.isFinite(rating) ? rating : 0));
+  const fullStars = Math.floor(safeRating);
+  const hasHalfStar = safeRating - fullStars >= 0.5;
+
+  return (
+    <View style={styles.starsRow}>
+      {Array.from({ length: 5 }).map((_, index) => {
+        if (index < fullStars) {
+          return <Star key={`star-${index}`} color="#54D3C2" fill="#54D3C2" size={24} />;
+        }
+
+        if (index === fullStars && hasHalfStar) {
+          return <StarHalf key={`star-${index}`} color="#54D3C2" fill="#54D3C2" size={24} />;
+        }
+
+        return <Star key={`star-${index}`} color="#54D3C2" size={24} />;
+      })}
+    </View>
+  );
+};
 
 const HotelListItem: React.FC<Props> = ({ data }) => {
   const { item, index } = data;
@@ -41,7 +62,7 @@ const HotelListItem: React.FC<Props> = ({ data }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  });
+  }, [index, opacity, translateY]);
 
   return (
     <Animated.View
@@ -53,12 +74,9 @@ const HotelListItem: React.FC<Props> = ({ data }) => {
           source={item.imagePath}
           resizeMode="stretch"
         />
-        <Icon
-          style={{ position: 'absolute', right: 0, padding: 16 }}
-          name="favorite-border"
-          size={24}
-          color="#54D3C2"
-        />
+        <View style={{ position: 'absolute', right: 0, padding: 16 }}>
+          <Heart size={22} color="#54D3C2" />
+        </View>
       </View>
       <View style={{ padding: 8, paddingHorizontal: 16 }}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -68,7 +86,7 @@ const HotelListItem: React.FC<Props> = ({ data }) => {
         <View style={{ flexDirection: 'row' }}>
           <View style={styles.subText}>
             <Text style={[{ marginRight: 4 }, textStyle]}>{item.subTxt}</Text>
-            <Icon name="location-pin" size={14} color="#54D3C2" />
+            <MapPin size={14} color="#54D3C2" />
             <Text style={textStyle}>
               {Number(item.dist.toPrecision(2))} km to city
             </Text>
@@ -76,19 +94,7 @@ const HotelListItem: React.FC<Props> = ({ data }) => {
           <Text style={styles.perNightText}>/per night</Text>
         </View>
         <View style={styles.ratingContainer}>
-          <RatingBar
-            initialRating={item.rating}
-            direction="horizontal"
-            allowHalfRating
-            itemCount={5}
-            itemSize={24}
-            glowColor="#54D3C2"
-            ratingElement={{
-              full: <Icon name="star-rate" color="#54D3C2" size={24} />,
-              half: <Icon name="star-half" color="#54D3C2" size={24} />,
-              empty: <Icon name="star-border" color="#54D3C2" size={24} />,
-            }}
-          />
+          {renderRatingStars(item.rating)}
           <Text style={styles.review}>{item.reviews} Reviews</Text>
         </View>
       </View>
@@ -139,6 +145,10 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     marginTop: 4,
+    alignItems: 'center',
+  },
+  starsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   review: {

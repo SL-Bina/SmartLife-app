@@ -20,11 +20,27 @@ import {
   ManagementPropertyScreen,
   ManagementResidentScreen,
 } from './screens/dashboard/management';
+import ManagementBlockFormRouteScreen from './screens/dashboard/management/block/form-route';
+import ManagementBlockViewRouteScreen from './screens/dashboard/management/block/view-route';
+import ManagementBuildingFormRouteScreen from './screens/dashboard/management/building/form-route';
+import ManagementBuildingViewRouteScreen from './screens/dashboard/management/building/view-route';
+import ManagementComplexFormRouteScreen from './screens/dashboard/management/complex/form-route';
+import ManagementComplexSettingsRouteScreen from './screens/dashboard/management/complex/settings-route';
+import ManagementComplexViewRouteScreen from './screens/dashboard/management/complex/view-route';
+import ManagementMtkFormRouteScreen from './screens/dashboard/management/mtk/form-route';
+import ManagementMtkViewRouteScreen from './screens/dashboard/management/mtk/view-route';
+import ManagementPropertyFormRouteScreen from './screens/dashboard/management/property/form-route';
+import ManagementPropertyInvoicesRouteScreen from './screens/dashboard/management/property/invoices-route';
+import ManagementPropertyServiceFeesRouteScreen from './screens/dashboard/management/property/service-fees-route';
+import ManagementPropertyViewRouteScreen from './screens/dashboard/management/property/view-route';
+import ManagementResidentFormRouteScreen from './screens/dashboard/management/resident/form-route';
+import ManagementResidentViewRouteScreen from './screens/dashboard/management/resident/resident-view-route';
 import QrScannerScreen from './screens/shared/qr-scanner';
 import SettingsScreen from './screens/dashboard/settings';
 import DashboardNotificationsScreen from './screens/dashboard/notifications';
 import DashboardModuleScreen from './screens/dashboard/module-screen';
-import DashboardUsersScreen from './screens/dashboard/users';
+// import DashboardUsersScreen from './screens/dashboard/users';
+import DashboardPermissionsScreen from './screens/dashboard/permissions';
 import { LoginScreen, SplashScreen } from './screens';
 import ResidentComplexDashboardScreen from './screens/resident/complexdashboard';
 import ResidentEDocumentsScreen from './screens/resident/e-documents';
@@ -50,6 +66,10 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import DrawerContent from './DrawerContent';
 import { useThemeMode } from './hooks/use-theme';
 import { APP_LAYOUT_COLORS } from './theme/layout-colors';
+import DashboardUsersScreen from './screens/dashboard/users';
+
+const ManagementResidentPropertiesRouteScreen =
+  require('./screens/dashboard/management/resident/properties-route').default;
 
 const Drawer = createDrawerNavigator();
 /**
@@ -106,7 +126,6 @@ const ComplexDashboardScreen = createPlaceholderScreen('Complex Dashboard');
 const KpiScreen = createPlaceholderScreen('KPI');
 const ElectronicDocumentsScreen = createPlaceholderScreen('Electronic Documents');
 const ReceptionScreen = createPlaceholderScreen('Reception');
-const PermissionsScreen = createPlaceholderScreen('Permissions');
 const DRAWER_SCREEN_MAP: Record<string, React.ComponentType<any>> = {
   home: HomeScene,
   finance_invoices: FinanceInvoicesScreen,
@@ -138,7 +157,7 @@ const DRAWER_SCREEN_MAP: Record<string, React.ComponentType<any>> = {
   kpi: KpiScreen,
   electronic_documents: ElectronicDocumentsScreen,
   reception: ReceptionScreen,
-  permissions: PermissionsScreen,
+  permissions: DashboardPermissionsScreen,
   users: DashboardUsersScreen,
   profile: ProfileScreen,
   my_devices: MyDevicesScreen,
@@ -318,10 +337,37 @@ const AppNavigator: React.FC = () => {
         translucent
       />
 
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        //  initialRouteName="onBoarding" // bu setri comment etsen demo acilis baglanacaq
+         // initialRouteName="Hotel" // bu setri acsan Hotel demo birbasa acilacaq
+         // initialRouteName="DesignCourse" // bu setri acsan Design Course demo birbasa acilacaq
+      >
         <Stack.Screen name="MainDrawer">
           {() => <DrawerNavigator layout={layout} isDark={isDark} />}
         </Stack.Screen>
+
+        <Stack.Screen name="ManagementBlockForm" component={ManagementBlockFormRouteScreen} />
+        <Stack.Screen name="ManagementBlockView" component={ManagementBlockViewRouteScreen} />
+
+        <Stack.Screen name="ManagementBuildingForm" component={ManagementBuildingFormRouteScreen} />
+        <Stack.Screen name="ManagementBuildingView" component={ManagementBuildingViewRouteScreen} />
+
+        <Stack.Screen name="ManagementComplexForm" component={ManagementComplexFormRouteScreen} />
+        <Stack.Screen name="ManagementComplexSettings" component={ManagementComplexSettingsRouteScreen} />
+        <Stack.Screen name="ManagementComplexView" component={ManagementComplexViewRouteScreen} />
+
+        <Stack.Screen name="ManagementMtkForm" component={ManagementMtkFormRouteScreen} />
+        <Stack.Screen name="ManagementMtkView" component={ManagementMtkViewRouteScreen} />
+
+        <Stack.Screen name="ManagementPropertyForm" component={ManagementPropertyFormRouteScreen} />
+        <Stack.Screen name="ManagementPropertyView" component={ManagementPropertyViewRouteScreen} />
+        <Stack.Screen name="ManagementPropertyInvoices" component={ManagementPropertyInvoicesRouteScreen} />
+        <Stack.Screen name="ManagementPropertyServiceFees" component={ManagementPropertyServiceFeesRouteScreen} />
+
+        <Stack.Screen name="ManagementResidentForm" component={ManagementResidentFormRouteScreen} />
+        <Stack.Screen name="ManagementResidentProperties" component={ManagementResidentPropertiesRouteScreen} />
+        <Stack.Screen name="ManagementResidentView" component={ManagementResidentViewRouteScreen} />
 
         <Stack.Screen name="Hotel" component={HotelHomeScreen} />
 

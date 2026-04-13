@@ -111,6 +111,16 @@ const HomeDesignCourse: React.FC = () => {
         />
       </View>
 
+      <View style={styles.demoButtonRow}>
+        <MyPressable
+          style={styles.demoButton}
+          touchOpacity={0.7}
+          onPress={() => navigation.navigate('Hotel')}
+        >
+          <Text style={styles.demoButtonText}>Open Hotel Demo</Text>
+        </MyPressable>
+      </View>
+
       <FlatList
         contentContainerStyle={{
           flexGrow: 1,
@@ -173,6 +183,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 8,
     paddingHorizontal: 18,
+  },
+  demoButtonRow: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+  },
+  demoButton: {
+    borderRadius: 12,
+    backgroundColor: '#132137',
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'WorkSans-SemiBold',
   },
   headerTextNormal: {
     color: 'grey',

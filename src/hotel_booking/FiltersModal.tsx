@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Square, SquareCheck, X } from 'lucide-react-native';
 import RangeSliderView from './RangeSliderView';
 import SliderView from './SliderView';
 import MyPressable from '../components/MyPressable';
@@ -38,8 +38,12 @@ const accomodation_List = [
 ];
 
 const FilterModal: React.FC<Props> = ({ showFilter, setShowFilter }) => {
-  const [popularFilterList, setPopularFilterList] = useState(popularFList);
-  const [accomodationList, setAccomodationList] = useState(accomodation_List);
+  const [popularFilterList, setPopularFilterList] = useState(() =>
+    popularFList.map(item => ({ ...item })),
+  );
+  const [accomodationList, setAccomodationList] = useState(() =>
+    accomodation_List.map(item => ({ ...item })),
+  );
 
   const getPList = () => {
     const noList: React.JSX.Element[] = [];
@@ -52,7 +56,7 @@ const FilterModal: React.FC<Props> = ({ showFilter, setShowFilter }) => {
         const data = popularFilterList[count];
         listUI.push(
           <View
-            key={`popular_${j}`}
+            key={`popular_${count}`}
             style={{ flex: 1, borderRadius: 4, overflow: 'hidden' }}
           >
             <MyPressable
@@ -63,11 +67,11 @@ const FilterModal: React.FC<Props> = ({ showFilter, setShowFilter }) => {
                 setPopularFilterList([...popularFilterList]);
               }}
             >
-              <Icon
-                name={data.isSelected ? 'check-box' : 'check-box-outline-blank'}
-                size={25}
-                color={data.isSelected ? '#54D3C2' : 'lightgrey'}
-              />
+              {data.isSelected ? (
+                <SquareCheck size={22} color="#54D3C2" />
+              ) : (
+                <Square size={22} color="lightgrey" />
+              )}
               <Text style={styles.checkTitle}>{data.titleTxt}</Text>
             </MyPressable>
           </View>,
@@ -80,7 +84,7 @@ const FilterModal: React.FC<Props> = ({ showFilter, setShowFilter }) => {
         }
       }
       noList.push(
-        <View key={noList.length} style={{ flex: 1, flexDirection: 'row' }}>
+        <View key={`popular_row_${i}`} style={{ flex: 1, flexDirection: 'row' }}>
           {listUI}
         </View>,
       );
@@ -158,7 +162,7 @@ const FilterModal: React.FC<Props> = ({ showFilter, setShowFilter }) => {
               touchOpacity={0.6}
               onPress={() => setShowFilter(false)}
             >
-              <Icon name="close" size={25} color="black" />
+              <X size={22} color="black" />
             </MyPressable>
           </View>
           <Text style={[styles.headerText]}>Filters</Text>

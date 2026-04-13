@@ -64,7 +64,8 @@ const IntroductionAnimationScreen: React.FC = () => {
     } else if (animValue.current > 0.4 && animValue.current <= 0.6) {
       toValue = 0.8;
     } else if (animValue.current > 0.6 && animValue.current <= 0.8) {
-      navigation.goBack();
+      navigation.navigate('Hotel' as never);
+      return;
     }
 
     toValue !== undefined && playAnimation(toValue);

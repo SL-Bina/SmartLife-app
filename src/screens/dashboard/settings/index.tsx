@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { changeIcon, getIcon, resetIcon } from 'react-native-change-icon';
 
 import AppPageLayout from '../../../components/common/app-page-layout';
 import { useQuickNavigationRoutes } from '../../../hooks/use-quick-navigation-routes';
@@ -20,6 +21,12 @@ type LanguageOption = {
 
 type ThemeOption = {
   mode: ThemeMode;
+  labels: Record<LanguageCode, string>;
+};
+
+type AppIconOption = {
+  key: 'Default' | 'Light' | 'Dark';
+  icon: string;
   labels: Record<LanguageCode, string>;
 };
 
@@ -56,6 +63,36 @@ const THEME_OPTIONS: ThemeOption[] = [
   },
 ];
 
+const APP_ICON_OPTIONS: AppIconOption[] = [
+  {
+    key: 'Default',
+    icon: '⭐',
+    labels: {
+      az: 'Standart',
+      en: 'Default',
+      ru: 'Стандартная',
+    },
+  },
+  {
+    key: 'Light',
+    icon: '☀️',
+    labels: {
+      az: 'Açıq ikon',
+      en: 'Light icon',
+      ru: 'Светлая иконка',
+    },
+  },
+  {
+    key: 'Dark',
+    icon: '🌙',
+    labels: {
+      az: 'Tünd ikon',
+      en: 'Dark icon',
+      ru: 'Темная иконка',
+    },
+  },
+];
+
 const PAGE_TITLE: Record<LanguageCode, string> = {
   az: 'Tənzimləmələr',
   en: 'Settings',
@@ -78,6 +115,12 @@ const COPY: Record<
     quickRoutesLimitText: (limit: number) => string;
     activeThemePrefix: string;
     activeLanguagePrefix: string;
+    iconTitle: string;
+    iconSubtitle: string;
+    iconApply: string;
+    iconApplied: string;
+    activeIconPrefix: string;
+    iconChangeFailed: string;
   }
 > = {
   az: {
@@ -94,6 +137,12 @@ const COPY: Record<
     quickRoutesLimitText: limit => `Maksimum ${limit} səhifə seçə bilərsən`,
     activeThemePrefix: 'Aktiv tema',
     activeLanguagePrefix: 'Aktiv dil',
+    iconTitle: 'Tətbiq ikonu',
+    iconSubtitle: 'Ana ekranda görünəcək ikon üslubunu seç.',
+    iconApply: 'Tətbiq et',
+    iconApplied: 'İkon yeniləndi',
+    activeIconPrefix: 'Aktiv ikon',
+    iconChangeFailed: 'İkon dəyişdirilə bilmədi',
   },
   en: {
     languageTitle: 'Language',
@@ -109,6 +158,12 @@ const COPY: Record<
     quickRoutesLimitText: limit => `You can select up to ${limit} pages`,
     activeThemePrefix: 'Active theme',
     activeLanguagePrefix: 'Active language',
+    iconTitle: 'App icon',
+    iconSubtitle: 'Choose the launcher icon style shown on your home screen.',
+    iconApply: 'Apply',
+    iconApplied: 'Icon updated',
+    activeIconPrefix: 'Active icon',
+    iconChangeFailed: 'Could not change app icon',
   },
   ru: {
     languageTitle: 'Язык',
@@ -124,6 +179,12 @@ const COPY: Record<
     quickRoutesLimitText: limit => `Можно выбрать максимум ${limit} страниц`,
     activeThemePrefix: 'Активная тема',
     activeLanguagePrefix: 'Активный язык',
+    iconTitle: 'Иконка приложения',
+    iconSubtitle: 'Выберите стиль иконки на главном экране.',
+    iconApply: 'Применить',
+    iconApplied: 'Иконка обновлена',
+    activeIconPrefix: 'Активная иконка',
+    iconChangeFailed: 'Не удалось изменить иконку',
   },
 };
 
@@ -140,6 +201,8 @@ export default function SettingsScreen() {
     toggleRouteSelection,
   } = useQuickNavigationRoutes();
   const isDark = resolvedTheme === 'dark';
+  const [activeIcon, setActiveIcon] = React.useState<AppIconOption['key']>('Default');
+  const [isSwitchingIcon, setIsSwitchingIcon] = React.useState(false);
 
   const settingsRouteKey = isResident ? 'resident_settings' : 'settings';
   const profileRouteKey = isResident ? 'resident_profile' : 'profile';
@@ -154,6 +217,37 @@ export default function SettingsScreen() {
   const activeThemeLabel =
     THEME_OPTIONS.find(option => option.mode === mode)?.labels[language] ??
     THEME_OPTIONS[0].labels[language];
+  const activeIconLabel =
+    APP_ICON_OPTIONS.find(option => option.key === activeIcon)?.labels[language] ??
+    APP_ICON_OPTIONS[0].labels[language];
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const loadActiveIcon = async () => {
+      try {
+        const iconName = await getIcon();
+        if (!mounted) {
+          return;
+        }
+        if (iconName === 'Light' || iconName === 'Dark' || iconName === 'Default') {
+          setActiveIcon(iconName);
+        } else {
+          setActiveIcon('Default');
+        }
+      } catch {
+        if (mounted) {
+          setActiveIcon('Default');
+        }
+      }
+    };
+
+    loadActiveIcon();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const onQuickRouteToggle = React.useCallback(
     (routeKey: string) => {
@@ -163,6 +257,30 @@ export default function SettingsScreen() {
       }
     },
     [selectionLimit, text, toggleRouteSelection],
+  );
+
+  const onIconSelect = React.useCallback(
+    async (iconKey: AppIconOption['key']) => {
+      if (isSwitchingIcon || iconKey === activeIcon) {
+        return;
+      }
+
+      setIsSwitchingIcon(true);
+      try {
+        if (iconKey === 'Default') {
+          await resetIcon();
+        } else {
+          await changeIcon(iconKey);
+        }
+        setActiveIcon(iconKey);
+        showToast(`${text.iconApplied}: ${APP_ICON_OPTIONS.find(option => option.key === iconKey)?.labels[language] ?? iconKey}`);
+      } catch {
+        showToast(text.iconChangeFailed);
+      } finally {
+        setIsSwitchingIcon(false);
+      }
+    },
+    [activeIcon, isSwitchingIcon, language, text],
   );
 
   return (
@@ -270,6 +388,69 @@ export default function SettingsScreen() {
 
         <Text style={[styles.activeText, isDark ? styles.textMutedDark : styles.textMutedLight]}>
           {text.activeThemePrefix}: {activeThemeLabel}
+        </Text>
+      </View>
+
+      <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
+        <Text style={[styles.cardTitle, isDark ? styles.textPrimaryDark : styles.textPrimaryLight]}>
+          {text.iconTitle}
+        </Text>
+        <Text style={[styles.cardSubtitle, isDark ? styles.textMutedDark : styles.textMutedLight]}>
+          {text.iconSubtitle}
+        </Text>
+
+        <View style={styles.optionStack}>
+          {APP_ICON_OPTIONS.map(option => {
+            const isActive = option.key === activeIcon;
+            return (
+              <Pressable
+                key={option.key}
+                disabled={isSwitchingIcon}
+                onPress={() => onIconSelect(option.key)}
+                style={[
+                  styles.optionButton,
+                  isActive
+                    ? styles.optionButtonActive
+                    : isDark
+                      ? styles.optionButtonDark
+                      : styles.optionButtonLight,
+                  isSwitchingIcon ? styles.optionButtonDisabled : undefined,
+                ]}
+              >
+                <Text style={styles.flagText}>{option.icon}</Text>
+                <Text
+                  style={[
+                    styles.optionText,
+                    isActive
+                      ? styles.optionTextActive
+                      : isDark
+                        ? styles.optionTextDark
+                        : styles.optionTextLight,
+                  ]}
+                >
+                  {option.labels[language]}
+                </Text>
+                <View style={styles.optionActionWrap}>
+                  <Text
+                    style={[
+                      styles.optionActionText,
+                      isActive
+                        ? styles.optionTextActive
+                        : isDark
+                          ? styles.textMutedDark
+                          : styles.textMutedLight,
+                    ]}
+                  >
+                    {isActive ? text.quickRoutesPicked : text.iconApply}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.activeText, isDark ? styles.textMutedDark : styles.textMutedLight]}>
+          {text.activeIconPrefix}: {activeIconLabel}
         </Text>
       </View>
 
@@ -389,6 +570,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  optionButtonDisabled: {
+    opacity: 0.75,
+  },
   optionButtonLight: {
     backgroundColor: '#f8fafc',
     borderColor: '#dbe4ef',
@@ -416,6 +600,13 @@ const styles = StyleSheet.create({
   },
   flagText: {
     fontSize: 16,
+  },
+  optionActionWrap: {
+    marginLeft: 'auto',
+  },
+  optionActionText: {
+    fontSize: 11,
+    fontFamily: 'WorkSans-Bold',
   },
   activeText: {
     marginTop: 12,

@@ -6,8 +6,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
-  ArrowRight,
   Building2,
   CircleDollarSign,
   FileText,
@@ -34,153 +34,83 @@ import {
 } from '../resident-data-utils';
 import { useResidentPropertySelector } from '../use-resident-property-selector';
 
-const invoiceStatusLabel = (status: string): string => {
-  if (status === 'paid') {
-    return 'Ödənilib';
-  }
-
-  if (status === 'overdue') {
-    return 'Vaxtı keçib';
-  }
-
-  if (status === 'unpaid' || status === 'not_paid') {
-    return 'Ödənilməyib';
-  }
-
-  return 'Naməlum';
-};
-
-const normalizeInvoiceStatus = (value: unknown): string => asString(value).trim().toLowerCase();
-
-function SectionTitle({
-  title,
-  subtitle,
-  icon: Icon,
-  isDark,
-}: {
+type QuickAction = {
+  key: string;
   title: string;
   subtitle: string;
   icon: LucideIcon;
-  isDark: boolean;
-}) {
-  return (
-    <View style={styles.sectionTitleWrap}>
-      <View style={styles.sectionTitleLeft}>
-        <View
-          style={[
-            styles.sectionIcon,
-            isDark ? styles.sectionIconDark : styles.sectionIconLight,
-          ]}
-        >
-          <Icon
-            size={17}
-            color={isDark ? '#dbeafe' : '#1d4ed8'}
-            strokeWidth={2.4}
-          />
-        </View>
+  routeKey: string;
+  accent: string;
+};
 
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.sectionTitleText,
-              isDark ? styles.sectionTitleTextDark : styles.sectionTitleTextLight,
-            ]}
-          >
-            {title}
-          </Text>
-          <Text
-            style={[
-              styles.sectionSubtitleText,
-              isDark ? styles.sectionSubtitleTextDark : styles.sectionSubtitleTextLight,
-            ]}
-          >
-            {subtitle}
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={[
-          styles.sectionGhostButton,
-          isDark ? styles.sectionGhostButtonDark : styles.sectionGhostButtonLight,
-        ]}
-      >
-        <ArrowRight
-          size={16}
-          color={isDark ? '#cbd5e1' : '#334155'}
-          strokeWidth={2.4}
-        />
-      </View>
-    </View>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  note,
-  icon: Icon,
-  isDark,
-}: {
+type ActivityItem = {
+  id: string;
   title: string;
-  value: string;
-  note: string;
-  icon: LucideIcon;
-  isDark: boolean;
-}) {
-  return (
-    <View
-      style={[
-        styles.metricCard,
-        isDark ? styles.metricCardDark : styles.metricCardLight,
-      ]}
-    >
-      <View style={styles.metricCardTop}>
-        <View
-          style={[
-            styles.metricIconWrap,
-            isDark ? styles.metricIconWrapDark : styles.metricIconWrapLight,
-          ]}
-        >
-          <Icon
-            size={17}
-            color={isDark ? '#bfdbfe' : '#1d4ed8'}
-            strokeWidth={2.3}
-          />
-        </View>
-      </View>
+  subtitle: string;
+  amountText: string;
+  positive: boolean;
+};
 
-      <Text
-        style={[
-          styles.metricTitle,
-          isDark ? styles.metricTitleDark : styles.metricTitleLight,
-        ]}
-      >
-        {title}
-      </Text>
+const invoiceStatusLabel = (status: string): string => {
+  if (status === 'paid') return 'Odenilib';
+  if (status === 'overdue') return 'Vaxti kecib';
+  if (status === 'unpaid' || status === 'not_paid') return 'Odenilmeyib';
+  return 'Namelum';
+};
 
-      <Text
-        style={[
-          styles.metricValue,
-          isDark ? styles.metricValueDark : styles.metricValueLight,
-        ]}
-      >
-        {value}
-      </Text>
+const normalizeInvoiceStatus = (value: unknown): string =>
+  asString(value).trim().toLowerCase();
 
-      <Text
-        style={[
-          styles.metricNote,
-          isDark ? styles.metricNoteDark : styles.metricNoteLight,
-        ]}
-      >
-        {note}
-      </Text>
-    </View>
-  );
-}
+const normalizeHexColor = (value: unknown): string | null => {
+  const raw = asString(value).trim();
+  if (!raw) return null;
+
+  const match = raw.match(/^#?([\da-f]{3}|[\da-f]{6})$/i);
+  if (!match) return null;
+
+  const hex = match[1];
+  if (hex.length === 3) {
+    const [r, g, b] = hex.split('');
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+
+  return `#${hex}`.toLowerCase();
+};
+
+const blendHex = (base: string, mixWith: string, mixRatio: number): string => {
+  const safeRatio = Math.max(0, Math.min(1, mixRatio));
+  const from = base.replace('#', '');
+  const to = mixWith.replace('#', '');
+
+  const mixChannel = (start: number, end: number): number =>
+    Math.round(start + (end - start) * safeRatio);
+
+  const r = mixChannel(parseInt(from.slice(0, 2), 16), parseInt(to.slice(0, 2), 16));
+  const g = mixChannel(parseInt(from.slice(2, 4), 16), parseInt(to.slice(2, 4), 16));
+  const b = mixChannel(parseInt(from.slice(4, 6), 16), parseInt(to.slice(4, 6), 16));
+
+  const toHex = (value: number): string => value.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const buildCardGradient = (baseHex: string, isDark: boolean): string[] => {
+  if (isDark) {
+    return [
+      blendHex(baseHex, '#070707', 0.54),
+      blendHex(baseHex, '#070707', 0.32),
+      blendHex(baseHex, '#ffffff', 0.08),
+    ];
+  }
+
+  return [
+    blendHex(baseHex, '#ffffff', 0.16),
+    blendHex(baseHex, '#000000', 0.14),
+    blendHex(baseHex, '#000000', 0.28),
+  ];
+};
 
 export default function MyPropertiesSection() {
+  const navigation = useNavigation<any>();
   const { resolvedTheme } = useThemeMode();
   const {
     propertyId,
@@ -195,7 +125,6 @@ export default function MyPropertiesSection() {
   const [error, setError] = React.useState<string | null>(null);
   const [properties, setProperties] = React.useState<Record<string, unknown>[]>([]);
   const [invoices, setInvoices] = React.useState<Record<string, unknown>[]>([]);
-  const [updatedAt, setUpdatedAt] = React.useState('');
 
   const runLoad = React.useCallback(
     async (isRefresh: boolean) => {
@@ -215,12 +144,8 @@ export default function MyPropertiesSection() {
             : residentInvoicesAPI.getAll(),
         ]);
 
-        const propertiesList = extractList(propertiesResponse).map(item => toRecord(item));
-        const invoicesList = extractList(invoicesResponse).map(item => toRecord(item));
-
-        setProperties(propertiesList);
-        setInvoices(invoicesList);
-        setUpdatedAt(formatDate(new Date().toISOString()));
+        setProperties(extractList(propertiesResponse).map(item => toRecord(item)));
+        setInvoices(extractList(invoicesResponse).map(item => toRecord(item)));
       } catch (loadError) {
         setProperties([]);
         setInvoices([]);
@@ -228,7 +153,7 @@ export default function MyPropertiesSection() {
         if (loadError instanceof Error && loadError.message) {
           setError(loadError.message);
         } else {
-          setError('Mənzil məlumatları yüklənmədi');
+          setError('Menzil melumatlari yuklenmedi');
         }
       } finally {
         if (isRefresh) {
@@ -246,111 +171,245 @@ export default function MyPropertiesSection() {
   }, [runLoad]);
 
   const selectedProperty = React.useMemo(() => {
-    if (!properties.length) {
-      return null;
-    }
+    if (!properties.length) return null;
 
     if (propertyId !== null) {
       const matched = properties.find(item => asString(item.id) === asString(propertyId));
-      if (matched) {
-        return matched;
-      }
+      if (matched) return matched;
     }
 
     return properties[0];
   }, [properties, propertyId]);
 
-  const detailRows = React.useMemo(() => {
-    if (!selectedProperty) {
-      return [] as Array<{ label: string; value: string }>;
-    }
-
-    const subData = toRecord(selectedProperty.sub_data);
-    const mtk = toRecord(subData.mtk);
-    const complex = toRecord(subData.complex);
-    const building = toRecord(subData.building);
-    const block = toRecord(subData.block);
-    const meta = toRecord(selectedProperty.meta);
-
-    const floorText = pickText(meta.floor, selectedProperty.floor);
-    const areaText = pickText(meta.area, selectedProperty.area);
-
-    const rows: Array<{ label: string; value: string }> = [
-      { label: 'MTK', value: pickText(mtk.name, '-') || '-' },
-      { label: 'Kompleks', value: pickText(complex.name, '-') || '-' },
-      { label: 'Bina', value: pickText(building.name, '-') || '-' },
-      { label: 'Blok', value: pickText(block.name, '-') || '-' },
-      {
-        label: 'Mərtəbə',
-        value: floorText ? `${floorText}-ci mərtəbə` : '-',
-      },
-    ];
-
-    if (areaText) {
-      rows.push({ label: 'Sahə', value: `${areaText} m²` });
-    }
-
-    return rows;
-  }, [selectedProperty]);
-
   const unpaidInvoices = React.useMemo(
-    () => invoices.filter(item => {
-      const normalized = normalizeInvoiceStatus(item.status);
-      return normalized === 'unpaid' || normalized === 'not_paid' || normalized === 'overdue';
-    }),
+    () =>
+      invoices.filter(item => {
+        const normalized = normalizeInvoiceStatus(item.status);
+        return normalized === 'unpaid' || normalized === 'not_paid' || normalized === 'overdue';
+      }),
     [invoices],
   );
 
   const totalDebt = React.useMemo(
-    () => unpaidInvoices.reduce((sum, item) => {
-      const amount = asNumber(item.amount);
-      const amountPaid = asNumber(item.amount_paid);
-      return sum + Math.max(0, amount - amountPaid);
-    }, 0),
+    () =>
+      unpaidInvoices.reduce((sum, item) => {
+        const amount = asNumber(item.amount);
+        const amountPaid = asNumber(item.amount_paid);
+        return sum + Math.max(0, amount - amountPaid);
+      }, 0),
     [unpaidInvoices],
   );
 
-  const pageTitle = pickText(
+  const totalAmount = React.useMemo(
+    () => invoices.reduce((sum, item) => sum + asNumber(item.amount), 0),
+    [invoices],
+  );
+
+  const totalPaid = React.useMemo(
+    () => invoices.reduce((sum, item) => sum + asNumber(item.amount_paid), 0),
+    [invoices],
+  );
+
+  const totalBalance = Math.max(0, totalAmount - totalDebt);
+  const paidPercent = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
+
+  const propertyTitle = pickText(
     selectedPropertyName,
     selectedProperty?.name,
     selectedProperty?.title,
     selectedProperty?.meta,
-    'Mənzil seçilməyib',
+    'Menzil secilmeyib',
   );
+
+  const latestDueDate = React.useMemo(() => {
+    if (!invoices.length) return '';
+
+    const sorted = [...invoices].sort((a, b) => {
+      const aTime = new Date(asString(a.due_date)).getTime();
+      const bTime = new Date(asString(b.due_date)).getTime();
+      return Number.isFinite(bTime) ? bTime - (Number.isFinite(aTime) ? aTime : 0) : 0;
+    });
+
+    return asString(sorted[0]?.due_date);
+  }, [invoices]);
+
+  const propertyMeta = React.useMemo(() => toRecord(selectedProperty?.meta), [selectedProperty]);
+  const propertySubData = React.useMemo(() => toRecord(selectedProperty?.sub_data), [selectedProperty]);
+  const propertyComplex = React.useMemo(() => toRecord(propertySubData.complex), [propertySubData]);
+  const propertyComplexMeta = React.useMemo(() => toRecord(propertyComplex.meta), [propertyComplex]);
+  const propertyMtk = React.useMemo(() => toRecord(propertySubData.mtk), [propertySubData]);
+  const propertyMtkMeta = React.useMemo(() => toRecord(propertyMtk.meta), [propertyMtk]);
+
+  const complexName = pickText(
+    toRecord(propertySubData.complex).name,
+    toRecord(propertySubData.mtk).name,
+  );
+  const buildingName = pickText(toRecord(propertySubData.building).name);
+  const blockName = pickText(toRecord(propertySubData.block).name);
+  const floorText = pickText(propertyMeta.floor, selectedProperty?.floor, '-');
+  const areaRaw = pickText(propertyMeta.area, selectedProperty?.area, '-');
+  const areaText = areaRaw && areaRaw !== '-' ? `${areaRaw} m²` : '-';
 
   const propertyStatus = normalizeInvoiceStatus(selectedProperty?.status);
   const propertyStatusLabel = propertyStatus === 'active' ? 'Aktiv' : 'Qeyri-aktiv';
 
-  const topMetrics = [
+  const complexColor = React.useMemo(
+    () =>
+      normalizeHexColor(
+        pickText(
+          propertyComplexMeta.color_code,
+          propertyComplexMeta.colorCode,
+          propertyComplex.color_code,
+          propertyComplex.colorCode,
+          propertyMtkMeta.color_code,
+          propertyMtkMeta.colorCode,
+          propertyMtk.color_code,
+          propertyMtk.colorCode,
+          propertyMeta.color_code,
+          propertyMeta.colorCode,
+          selectedProperty?.color_code,
+          selectedProperty?.colorCode,
+        ),
+      ),
+    [
+      propertyComplexMeta,
+      propertyComplex,
+      propertyMtkMeta,
+      propertyMtk,
+      propertyMeta,
+      selectedProperty,
+    ],
+  );
+
+  const cardGradient = React.useMemo(
+    () =>
+      complexColor
+        ? buildCardGradient(complexColor, isDark)
+        : isDark
+          ? ['#7f1d1d', '#b91c1c', '#ef4444']
+          : ['#fda4af', '#fb7185', '#ef4444'],
+    [complexColor, isDark],
+  );
+
+  const quickActions: QuickAction[] = [
     {
-      title: 'Status',
-      value: propertyStatusLabel,
-      note: 'Seçilən mənzilin vəziyyəti',
-      icon: Home,
-    },
-    {
-      title: 'Cəmi faktura',
-      value: String(invoices.length),
-      note: 'Bu mənzil üçün',
+      key: 'invoices',
+      title: 'Fakturalar',
+      subtitle: 'Odenis tarixcesi',
       icon: FileText,
+      routeKey: 'resident_invoices',
+      accent: '#ef4444',
     },
     {
-      title: 'Ödənilməmiş',
-      value: String(unpaidInvoices.length),
-      note: 'Aktiv borc qeydləri',
+      key: 'services',
+      title: 'Xidmetler',
+      subtitle: 'Gosterilen servisler',
+      icon: Building2,
+      routeKey: 'resident_my_services',
+      accent: '#f97316',
+    },
+    {
+      key: 'notifications',
+      title: 'Bildirisler',
+      subtitle: 'Son yenilikler',
       icon: Layers3,
+      routeKey: 'resident_notifications',
+      accent: '#3b82f6',
     },
     {
-      title: 'Borc',
-      value: formatCurrency(totalDebt),
-      note: 'Qalıq ödəniş',
-      icon: CircleDollarSign,
+      key: 'profile',
+      title: 'Profil',
+      subtitle: 'Hesab melumatlari',
+      icon: Home,
+      routeKey: 'resident_profile',
+      accent: '#22c55e',
     },
   ];
 
+  const recentActivity: ActivityItem[] = React.useMemo(() => {
+    return invoices.slice(0, 6).map((invoice, index) => {
+      const invoiceId = pickText(invoice.id, `invoice-${index + 1}`);
+      const serviceName = pickText(
+        toRecord(invoice.service).name,
+        invoice.title,
+        'Service payment',
+      );
+      const status = normalizeInvoiceStatus(invoice.status);
+      const amount = asNumber(invoice.amount);
+      const amountPaid = asNumber(invoice.amount_paid);
+
+      const positive = status === 'paid';
+      const unsignedValue = positive
+        ? Math.max(amountPaid, amount)
+        : Math.max(0, amount - amountPaid) || amount;
+
+      const amountText = `${positive ? '+' : '-'}${formatCurrency(unsignedValue)}`;
+
+      return {
+        id: invoiceId,
+        title: serviceName,
+        subtitle: `${invoiceStatusLabel(status)}, ${formatDate(
+          pickText(invoice.created_at, invoice.due_date),
+        )}`,
+        amountText,
+        positive,
+      };
+    });
+  }, [invoices]);
+
+  const palette = isDark
+    ? {
+      bg: '#060607',
+      balanceLabel: '#8f9098',
+      balanceValue: '#f3f4f6',
+      deltaBg: 'rgba(239, 68, 68, 0.22)',
+      deltaText: '#fca5a5',
+      sectionLabel: '#8f9098',
+      sectionAction: '#f87171',
+      cardGradient,
+      cardBrand: '#ffe4e6',
+      cardNumber: '#ffffff',
+      cardMeta: '#fecaca',
+      cardMetaStrong: '#ffffff',
+      actionCardBg: '#131317',
+      actionCardBorder: '#25252c',
+      actionTitle: '#f3f4f6',
+      activityCardBg: '#141419',
+      activityCardBorder: '#272730',
+      activityTitle: '#f4f4f5',
+      activityMeta: '#9697a8',
+      amountPositive: '#fb7185',
+      amountNegative: '#fda4af',
+      empty: '#a1a1aa',
+    }
+    : {
+      bg: '#fff6f6',
+      balanceLabel: '#7f1d1d',
+      balanceValue: '#2a0a0a',
+      deltaBg: '#fee2e2',
+      deltaText: '#b91c1c',
+      sectionLabel: '#9f1239',
+      sectionAction: '#be123c',
+      cardGradient,
+      cardBrand: '#fff1f2',
+      cardNumber: '#ffffff',
+      cardMeta: '#ffe4e6',
+      cardMetaStrong: '#ffffff',
+      actionCardBg: '#ffffff',
+      actionCardBorder: '#fecaca',
+      actionTitle: '#3f0a0a',
+      activityCardBg: '#ffffff',
+      activityCardBorder: '#fecaca',
+      activityTitle: '#3f0a0a',
+      activityMeta: '#881337',
+      amountPositive: '#be123c',
+      amountNegative: '#e11d48',
+      empty: '#9f1239',
+    };
+
   return (
     <AppPageLayout
-      title="Mənzilim"
+      title="Menzilim"
       isDark={isDark}
       scrollable
       settingsRouteKey="resident_settings"
@@ -360,234 +419,218 @@ export default function MyPropertiesSection() {
       mtkOptions={propertyOptions.map(option => option.name)}
       initialMtk={selectedPropertyName}
       onMtkChange={onPropertyChange}
+      contentStyle={{ backgroundColor: palette.bg }}
+      contentContainerStyle={styles.pageContent}
     >
-      <LinearGradient
-        colors={
-          isDark
-            ? ['#0f172a', '#111827', '#172554']
-            : ['#dbeafe', '#eff6ff', '#ffffff']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[
-          styles.hero,
-          isDark ? styles.heroBorderDark : styles.heroBorderLight,
-        ]}
-      >
-        <Text style={[styles.heroTitle, isDark ? styles.heroTitleDark : styles.heroTitleLight]}>
-          Mənzilim
-        </Text>
-        <Text style={[styles.heroSubtitle, isDark ? styles.heroSubtitleDark : styles.heroSubtitleLight]}>
-          Dashboard panel üslubunda seçilmiş mənzil məlumatları
-        </Text>
-
-        <View style={styles.heroBottom}>
-          <View style={styles.heroStatMain}>
-            <Text
-              style={[
-                styles.heroStatMainLabel,
-                isDark ? styles.heroStatMainLabelDark : styles.heroStatMainLabelLight,
-              ]}
-            >
-              Aktiv mənzil
-            </Text>
-            <Text
-              style={[
-                styles.heroStatMainValue,
-                isDark ? styles.heroStatMainValueDark : styles.heroStatMainValueLight,
-              ]}
-            >
-              {pageTitle}
-            </Text>
-          </View>
-
-          <View style={styles.heroMetaRow}>
-            <Text style={[styles.metaText, isDark ? styles.metaTextDark : styles.metaTextLight]}>
-              Son yenilənmə: {updatedAt || '-'}
-            </Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={() => runLoad(true)}
-          style={[
-            styles.refreshButton,
-            isDark ? styles.refreshButtonDark : styles.refreshButtonLight,
-          ]}
-          disabled={refreshing || loading}
-        >
-          <Text
-            style={[
-              styles.refreshButtonText,
-              isDark ? styles.refreshButtonTextDark : styles.refreshButtonTextLight,
-            ]}
-          >
-            {refreshing ? 'Yenilənir...' : 'Yenilə'}
-          </Text>
-        </Pressable>
-      </LinearGradient>
-
       {loading ? (
         <View style={styles.centerWrap}>
-          <ActivityIndicator size="large" color={isDark ? '#93c5fd' : '#2563eb'} />
+          <ActivityIndicator size="large" color={isDark ? '#f87171' : '#be123c'} />
         </View>
       ) : null}
 
       {!loading && error ? (
         <View style={styles.centerWrap}>
-          <Text style={[styles.errorText, isDark ? styles.errorTextDark : styles.errorTextLight]}>{error}</Text>
+          <Text style={[styles.errorText, { color: '#dc2626' }]}>{error}</Text>
         </View>
       ) : null}
 
       {!loading && !error && !selectedProperty ? (
         <View style={styles.centerWrap}>
-          <Text style={[styles.emptyText, isDark ? styles.emptyTextDark : styles.emptyTextLight]}>
-            Mənzil məlumatı tapılmadı
-          </Text>
+          <Text style={[styles.emptyText, { color: palette.empty }]}>Menzil melumati tapilmadi</Text>
         </View>
       ) : null}
 
       {!loading && !error && selectedProperty ? (
-        <View style={styles.contentWrap}>
-          <View style={styles.metricGrid}>
-            {topMetrics.map(metric => (
-              <MetricCard
-                key={metric.title}
-                title={metric.title}
-                value={metric.value}
-                note={metric.note}
-                icon={metric.icon}
-                isDark={isDark}
-              />
-            ))}
+        <View style={styles.screenStack}>
+          <View style={styles.balanceBlock}>
+            <Text style={[styles.balanceLabel, { color: palette.balanceLabel }]}>UMUMI BALANS</Text>
+            <View style={styles.balanceRow}>
+              <CircleDollarSign size={20} color={palette.balanceValue} strokeWidth={2.2} />
+              <Text style={[styles.balanceValue, { color: palette.balanceValue }]}>{formatCurrency(totalBalance)}</Text>
+              <View style={[styles.deltaPill, { backgroundColor: palette.deltaBg }]}>
+                <Text style={[styles.deltaText, { color: palette.deltaText }]}>+{paidPercent}%</Text>
+              </View>
+            </View>
           </View>
 
-          <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
-            <SectionTitle
-              title="Mənzil məlumatları"
-              subtitle="Kompleks, bina və blok məlumatları"
-              icon={Building2}
-              isDark={isDark}
-            />
+          <View style={styles.sectionRow}>
+            <Text style={[styles.sectionLabel, { color: palette.sectionLabel }]}>MENZILIM</Text>
+            <Pressable onPress={() => navigation.navigate('resident_invoices')}>
+              <Text style={[styles.sectionAction, { color: palette.sectionAction }]}>Etrafli</Text>
+            </Pressable>
+          </View>
 
-            <View style={styles.detailsGrid}>
-              {detailRows.map(row => (
-                <View
-                  key={row.label}
-                  style={[styles.detailRow, isDark ? styles.detailRowDark : styles.detailRowLight]}
-                >
-                  <Text style={[styles.detailLabel, isDark ? styles.detailLabelDark : styles.detailLabelLight]}>
-                    {row.label}
-                  </Text>
-                  <Text style={[styles.detailValue, isDark ? styles.detailValueDark : styles.detailValueLight]}>
-                    {row.value}
+          <LinearGradient
+            colors={palette.cardGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.propertyCard}
+          >
+            <View style={styles.propertyTopRow}>
+              <View style={styles.propertyHeaderLeft}>
+                <View style={styles.propertyIconBubble}>
+                  <Home size={18} color="#fff" strokeWidth={2.5} />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.propertyHeaderLabel, { color: palette.cardMeta }]}>Menzil karti</Text>
+                  <Text numberOfLines={1} style={[styles.propertyName, { color: palette.cardMetaStrong }]}>
+                    {propertyTitle}
                   </Text>
                 </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
-            <SectionTitle
-              title="Faktura xülasəsi"
-              subtitle="Ödəniş göstəricilərinin ümumi icmalı"
-              icon={CircleDollarSign}
-              isDark={isDark}
-            />
-
-            <View
-              style={[
-                styles.summaryRow,
-                isDark ? styles.summaryRowDark : styles.summaryRowLight,
-              ]}
-            >
-              <Text style={[styles.summaryLabel, isDark ? styles.summaryLabelDark : styles.summaryLabelLight]}>
-                Cəmi faktura
-              </Text>
-              <Text style={[styles.summaryValue, isDark ? styles.summaryValueDark : styles.summaryValueLight]}>
-                {invoices.length}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.summaryRow,
-                isDark ? styles.summaryRowDark : styles.summaryRowLight,
-              ]}
-            >
-              <Text style={[styles.summaryLabel, isDark ? styles.summaryLabelDark : styles.summaryLabelLight]}>
-                Ödənilməmiş
-              </Text>
-              <Text style={[styles.summaryValue, isDark ? styles.summaryValueDark : styles.summaryValueLight]}>
-                {unpaidInvoices.length}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.summaryRow,
-                isDark ? styles.summaryRowDark : styles.summaryRowLight,
-              ]}
-            >
-              <Text style={[styles.summaryLabel, isDark ? styles.summaryLabelDark : styles.summaryLabelLight]}>
-                Borc
-              </Text>
-              <Text style={[styles.summaryValue, isDark ? styles.summaryValueDark : styles.summaryValueLight]}>
-                {formatCurrency(totalDebt)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
-            <SectionTitle
-              title="Son fakturalar"
-              subtitle="Ən son əməliyyatların qısa siyahısı"
-              icon={FileText}
-              isDark={isDark}
-            />
-
-            {invoices.length === 0 ? (
-              <Text style={[styles.emptyText, isDark ? styles.emptyTextDark : styles.emptyTextLight]}>
-                Bu mənzil üçün faktura tapılmadı
-              </Text>
-            ) : (
-              <View style={styles.invoiceList}>
-                {invoices.slice(0, 6).map((invoice, index) => {
-                  const invoiceId = pickText(invoice.id, `invoice-${index + 1}`);
-                  const serviceName = pickText(
-                    toRecord(invoice.service).name,
-                    invoice.title,
-                    'Xidmət',
-                  );
-                  const status = normalizeInvoiceStatus(invoice.status);
-
-                  return (
-                    <View
-                      key={invoiceId}
-                      style={[styles.invoiceRow, isDark ? styles.invoiceRowDark : styles.invoiceRowLight]}
-                    >
-                      <View style={styles.invoiceLeft}>
-                        <Text style={[styles.invoiceTitle, isDark ? styles.invoiceTitleDark : styles.invoiceTitleLight]}>
-                          {serviceName}
-                        </Text>
-                        <Text style={[styles.invoiceMeta, isDark ? styles.invoiceMetaDark : styles.invoiceMetaLight]}>
-                          #{invoiceId} • {formatDate(invoice.due_date)}
-                        </Text>
-                      </View>
-                      <View style={styles.invoiceRight}>
-                        <Text style={[styles.invoiceAmount, isDark ? styles.invoiceAmountDark : styles.invoiceAmountLight]}>
-                          {formatCurrency(invoice.amount)}
-                        </Text>
-                        <Text style={[styles.invoiceStatus, isDark ? styles.invoiceStatusDark : styles.invoiceStatusLight]}>
-                          {invoiceStatusLabel(status)}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
               </View>
+
+              <View style={styles.propertyStatusPill}>
+                <Text style={[styles.propertyStatusPillText, { color: palette.cardMetaStrong }]}>
+                  {propertyStatusLabel}
+                </Text>
+              </View>
+            </View>
+
+            <Text numberOfLines={1} style={[styles.propertyHint, { color: palette.cardBrand }]}>
+              {pickText(complexName, buildingName, blockName, 'Secilmis menzil')}
+            </Text>
+
+            <View style={styles.propertyComplexRow}>
+              <View
+                style={[
+                  styles.propertyComplexDot,
+                  { backgroundColor: complexColor ?? 'rgba(255,255,255,0.75)' },
+                ]}
+              />
+              <Text numberOfLines={1} style={[styles.propertyComplexText, { color: palette.cardMeta }]}> 
+                {pickText(complexName, 'Kompleks melum deyil')}
+              </Text>
+            </View>
+
+            <View style={styles.propertyBadgeRow}>
+              <View style={styles.propertyBadge}>
+                <Text style={[styles.propertyBadgeText, { color: palette.cardMetaStrong }]}>Mertebe: {floorText}</Text>
+              </View>
+
+              <View style={styles.propertyBadge}>
+                <Text style={[styles.propertyBadgeText, { color: palette.cardMetaStrong }]}>Sahe: {areaText}</Text>
+              </View>
+            </View>
+
+            <View style={styles.propertyStatsRow}>
+              <View style={styles.propertyStatItem}>
+                <Text style={[styles.propertyStatLabel, { color: palette.cardMeta }]}>Odenilmemis</Text>
+                <Text style={[styles.propertyStatValue, { color: palette.cardMetaStrong }]}>{unpaidInvoices.length}</Text>
+              </View>
+
+              <View style={styles.propertyStatItem}>
+                <Text style={[styles.propertyStatLabel, { color: palette.cardMeta }]}>Novbeti odenis</Text>
+                <Text style={[styles.propertyStatValue, { color: palette.cardMetaStrong }]}>
+                  {latestDueDate ? formatDate(latestDueDate) : '-'}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.quickGrid}>
+            {quickActions.map(action => {
+              const Icon = action.icon;
+              return (
+                <Pressable
+                  key={action.key}
+                  onPress={() => navigation.navigate(action.routeKey)}
+                  style={({ pressed }) => [
+                    styles.quickCard,
+                    {
+                      backgroundColor: palette.actionCardBg,
+                      borderColor: palette.actionCardBorder,
+                      opacity: pressed ? 0.9 : 1,
+                    },
+                  ]}
+                >
+                  <View style={[styles.quickCardAccent, { backgroundColor: action.accent }]} />
+
+                  <View style={styles.quickCardBody}>
+                    <View style={styles.quickCardTop}>
+                      <View style={[styles.quickIconCircle, { backgroundColor: action.accent }]}>
+                        <Icon size={17} color="#fff" strokeWidth={2.3} />
+                      </View>
+
+                    </View>
+
+                    <Text numberOfLines={1} style={[styles.quickTitle, { color: palette.actionTitle }]}>{action.title}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.sectionRowWithSpacing}>
+            <Text style={[styles.sectionLabel, { color: palette.sectionLabel }]}>SON EMEKLIYYATLAR</Text>
+            <Pressable onPress={() => navigation.navigate('resident_invoices')}>
+              <Text style={[styles.sectionAction, { color: palette.sectionAction }]}>Hamisi</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.activityList}>
+            {recentActivity.length === 0 ? (
+              <View style={[styles.activityCard, { backgroundColor: palette.activityCardBg, borderColor: palette.activityCardBorder }]}>
+                <Text style={[styles.activityTitle, { color: palette.activityTitle }]}>Son emeliyyat yoxdur</Text>
+              </View>
+            ) : (
+              recentActivity.map(item => (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.activityCard,
+                    { backgroundColor: palette.activityCardBg, borderColor: palette.activityCardBorder },
+                  ]}
+                >
+                  <View style={styles.activityIconWrap}>
+                    <View
+                      style={[
+                        styles.activityIcon,
+                        { backgroundColor: item.positive ? '#ef4444' : '#fb7185' },
+                      ]}
+                    >
+                      <Text style={styles.activityIconText}>{item.positive ? '+' : '-'}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.activityCenter}>
+                    <Text numberOfLines={1} style={[styles.activityTitle, { color: palette.activityTitle }]}>
+                      {item.title}
+                    </Text>
+                    <Text numberOfLines={1} style={[styles.activityMeta, { color: palette.activityMeta }]}>
+                      {item.subtitle}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.activityAmount,
+                      { color: item.positive ? palette.amountPositive : palette.amountNegative },
+                    ]}
+                  >
+                    {item.amountText}
+                  </Text>
+                </View>
+              ))
             )}
           </View>
+
+          <Pressable
+            onPress={() => runLoad(true)}
+            style={({ pressed }) => [
+              styles.refreshButton,
+              {
+                borderColor: palette.actionCardBorder,
+                backgroundColor: palette.actionCardBg,
+                opacity: pressed ? 0.92 : 1,
+              },
+            ]}
+            disabled={refreshing || loading}
+          >
+            <Text style={[styles.refreshButtonText, { color: palette.actionTitle }]}>
+              {refreshing ? 'Yenilenir...' : 'Yenile'}
+            </Text>
+          </Pressable>
         </View>
       ) : null}
     </AppPageLayout>
@@ -595,431 +638,278 @@ export default function MyPropertiesSection() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 12,
-  },
-  heroBorderLight: {
-    borderColor: '#bfdbfe',
-  },
-  heroBorderDark: {
-    borderColor: 'rgba(59,130,246,0.22)',
-  },
-  heroTitle: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontFamily: 'WorkSans-Bold',
-  },
-  heroTitleLight: {
-    color: '#0f172a',
-  },
-  heroTitleDark: {
-    color: '#f8fafc',
-  },
-  heroSubtitle: {
-    marginTop: 10,
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: 'WorkSans-Regular',
-  },
-  heroSubtitleLight: {
-    color: '#334155',
-  },
-  heroSubtitleDark: {
-    color: '#cbd5e1',
-  },
-  heroBottom: {
-    marginTop: 20,
-    gap: 12,
-  },
-  heroStatMain: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    padding: 16,
-  },
-  heroStatMainLabel: {
-    fontSize: 12,
-    fontFamily: 'WorkSans-Medium',
-  },
-  heroStatMainLabelLight: {
-    color: '#475569',
-  },
-  heroStatMainLabelDark: {
-    color: '#cbd5e1',
-  },
-  heroStatMainValue: {
-    marginTop: 8,
-    fontSize: 24,
-    lineHeight: 30,
-    fontFamily: 'WorkSans-Bold',
-  },
-  heroStatMainValueLight: {
-    color: '#0f172a',
-  },
-  heroStatMainValueDark: {
-    color: '#ffffff',
-  },
-  heroMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: 'WorkSans-Regular',
-  },
-  metaTextLight: {
-    color: '#64748b',
-  },
-  metaTextDark: {
-    color: '#94a3b8',
-  },
-  refreshButton: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  refreshButtonLight: {
-    borderColor: '#dbeafe',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-  },
-  refreshButtonDark: {
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  refreshButtonText: {
-    fontSize: 12,
-    fontFamily: 'WorkSans-SemiBold',
-  },
-  refreshButtonTextLight: {
-    color: '#1e3a8a',
-  },
-  refreshButtonTextDark: {
-    color: '#dbeafe',
+  pageContent: {
+    paddingBottom: 18,
   },
   centerWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
+    paddingVertical: 30,
   },
-  errorText: {
-    fontSize: 14,
-    fontWeight: '600',
+  screenStack: {
+    gap: 14,
   },
-  errorTextLight: {
-    color: '#b91c1c',
+  balanceBlock: {
+    paddingTop: 4,
   },
-  errorTextDark: {
-    color: '#fecaca',
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  emptyTextLight: {
-    color: '#475569',
-  },
-  emptyTextDark: {
-    color: '#cbd5e1',
-  },
-  contentWrap: {
-    gap: 10,
-    paddingBottom: 12,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  metricCard: {
-    width: '48.5%',
-    borderRadius: 24,
-    padding: 14,
-    borderWidth: 1,
-  },
-  metricCardLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  metricCardDark: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-  },
-  metricCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metricIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  metricIconWrapLight: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#dbeafe',
-  },
-  metricIconWrapDark: {
-    backgroundColor: '#111827',
-    borderColor: '#1e3a8a',
-  },
-  metricTitle: {
-    marginTop: 14,
+  balanceLabel: {
     fontSize: 12,
-    fontFamily: 'WorkSans-Medium',
+    letterSpacing: 1.4,
+    fontFamily: 'WorkSans-SemiBold',
   },
-  metricTitleLight: {
-    color: '#64748b',
-  },
-  metricTitleDark: {
-    color: '#94a3b8',
-  },
-  metricValue: {
+  balanceRow: {
     marginTop: 8,
-    fontSize: 20,
-    lineHeight: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  balanceValue: {
+    fontSize: 30,
+    lineHeight: 36,
     fontFamily: 'WorkSans-Bold',
   },
-  metricValueLight: {
-    color: '#0f172a',
+  deltaPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  metricValueDark: {
-    color: '#f8fafc',
+  deltaText: {
+    fontSize: 14,
+    fontFamily: 'WorkSans-Bold',
   },
-  metricNote: {
-    marginTop: 5,
-    fontSize: 11,
-    lineHeight: 16,
-    fontFamily: 'WorkSans-Regular',
-  },
-  metricNoteLight: {
-    color: '#64748b',
-  },
-  metricNoteDark: {
-    color: '#94a3b8',
-  },
-  card: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 14,
-  },
-  cardLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  cardDark: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
-  },
-  sectionTitleWrap: {
+  sectionRow: {
+    marginTop: 4,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-between',
   },
-  sectionTitleLeft: {
+  sectionRowWithSpacing: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    letterSpacing: 1.6,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  sectionAction: {
+    fontSize: 14,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  propertyCard: {
+    borderRadius: 28,
+    padding: 18,
+    gap: 18,
+  },
+  propertyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  propertyHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     flex: 1,
   },
-  sectionIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 13,
+  propertyIconBubble: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  sectionIconLight: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#bfdbfe',
+  propertyStatusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  sectionIconDark: {
-    backgroundColor: 'rgba(59,130,246,0.16)',
-    borderColor: 'rgba(96,165,250,0.2)',
+  propertyStatusPillText: {
+    fontSize: 11,
+    fontFamily: 'WorkSans-SemiBold',
   },
-  sectionTitleText: {
-    fontSize: 16,
+  propertyHeaderLabel: {
+    fontSize: 11,
+    letterSpacing: 0.8,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  propertyName: {
+    marginTop: 2,
+    fontSize: 18,
     fontFamily: 'WorkSans-Bold',
   },
-  sectionTitleTextLight: {
-    color: '#0f172a',
-  },
-  sectionTitleTextDark: {
-    color: '#f8fafc',
-  },
-  sectionSubtitleText: {
+  propertyHint: {
     marginTop: 2,
     fontSize: 12,
     fontFamily: 'WorkSans-Regular',
   },
-  sectionSubtitleTextLight: {
-    color: '#64748b',
-  },
-  sectionSubtitleTextDark: {
-    color: '#94a3b8',
-  },
-  sectionGhostButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+  propertyComplexRow: {
+    marginTop: -4,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  sectionGhostButtonLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  sectionGhostButtonDark: {
-    backgroundColor: '#111827',
-    borderColor: '#1f2937',
-  },
-  detailsGrid: {
     gap: 8,
   },
-  detailRow: {
-    borderRadius: 10,
+  propertyComplexDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  propertyComplexText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  propertyBadgeRow: {
+    marginTop: 4,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  propertyBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  propertyBadgeText: {
+    fontSize: 11,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  propertyStatsRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  propertyStatItem: {
+    flex: 1,
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  detailRowLight: {
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
+  propertyStatLabel: {
+    fontSize: 11,
+    fontFamily: 'WorkSans-Regular',
   },
-  detailRowDark: {
-    borderColor: '#334155',
-    backgroundColor: '#111827',
+  propertyStatValue: {
+    marginTop: 2,
+    fontSize: 13,
+    fontFamily: 'WorkSans-Bold',
   },
-  detailLabel: {
-    fontSize: 12,
-  },
-  detailLabelLight: {
-    color: '#64748b',
-  },
-  detailLabelDark: {
-    color: '#94a3b8',
-  },
-  detailValue: {
-    marginTop: 3,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  detailValueLight: {
-    color: '#0f172a',
-  },
-  detailValueDark: {
-    color: '#f8fafc',
-  },
-  summaryRow: {
+  quickGrid: {
     flexDirection: 'row',
+    flexWrap: 'nowrap',
     justifyContent: 'space-between',
+    gap: 8,
+  },
+  quickCard: {
+    width: '24%',
+    minHeight: 94,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  quickCardAccent: {
+    height: 4,
+    width: '100%',
+  },
+  quickCardBody: {
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    gap: 8,
     alignItems: 'center',
-    paddingVertical: 9,
-    borderBottomWidth: 1,
+    justifyContent: 'center',
   },
-  summaryRowLight: {
-    borderBottomColor: '#dbeafe',
+  quickCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  summaryRowDark: {
-    borderBottomColor: '#1e3a8a',
+  quickIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  summaryLabel: {
+  quickTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: 'WorkSans-SemiBold',
+    textAlign: 'center',
+  },
+  quickSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: 'WorkSans-Regular',
+  },
+  activityList: {
+    gap: 10,
+  },
+  activityCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  activityIconWrap: {
+    width: 42,
+    alignItems: 'center',
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityIconText: {
+    color: '#fff',
+    fontSize: 19,
+    fontFamily: 'WorkSans-Bold',
+  },
+  activityCenter: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  activityMeta: {
+    marginTop: 2,
     fontSize: 13,
     fontFamily: 'WorkSans-Regular',
   },
-  summaryLabelLight: {
-    color: '#475569',
-  },
-  summaryLabelDark: {
-    color: '#cbd5e1',
-  },
-  summaryValue: {
-    fontSize: 14,
+  activityAmount: {
+    fontSize: 18,
     fontFamily: 'WorkSans-Bold',
   },
-  summaryValueLight: {
-    color: '#0f172a',
-  },
-  summaryValueDark: {
-    color: '#f8fafc',
-  },
-  invoiceList: {
-    gap: 8,
-  },
-  invoiceRow: {
-    borderWidth: 1,
+  refreshButton: {
+    marginTop: 4,
     borderRadius: 14,
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
-  invoiceRowLight: {
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
-  },
-  invoiceRowDark: {
-    borderColor: '#334155',
-    backgroundColor: '#111827',
-  },
-  invoiceLeft: {
-    flex: 1,
-  },
-  invoiceRight: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  invoiceTitle: {
+  refreshButtonText: {
     fontSize: 14,
     fontFamily: 'WorkSans-SemiBold',
   },
-  invoiceTitleLight: {
-    color: '#0f172a',
-  },
-  invoiceTitleDark: {
-    color: '#f8fafc',
-  },
-  invoiceMeta: {
-    marginTop: 2,
-    fontSize: 12,
-    fontFamily: 'WorkSans-Regular',
-  },
-  invoiceMetaLight: {
-    color: '#64748b',
-  },
-  invoiceMetaDark: {
-    color: '#94a3b8',
-  },
-  invoiceAmount: {
+  errorText: {
     fontSize: 14,
-    fontFamily: 'WorkSans-Bold',
-  },
-  invoiceAmountLight: {
-    color: '#14532d',
-  },
-  invoiceAmountDark: {
-    color: '#86efac',
-  },
-  invoiceStatus: {
-    fontSize: 11,
     fontFamily: 'WorkSans-SemiBold',
   },
-  invoiceStatusLight: {
-    color: '#475569',
-  },
-  invoiceStatusDark: {
-    color: '#cbd5e1',
+  emptyText: {
+    fontSize: 14,
+    fontFamily: 'WorkSans-Medium',
   },
 });

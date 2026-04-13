@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import MyPressable from '../components/MyPressable';
 
 interface Props {
@@ -291,7 +291,7 @@ const CustomCalendar: React.FC<Props> = ({
               setListOfDate(currentMonthDate);
             }}
           >
-            <Icon name="keyboard-arrow-left" size={28} color="grey" />
+            <ChevronLeft size={24} color="grey" />
           </MyPressable>
         </View>
         <Text style={styles.monthHeaderStyle}>
@@ -307,7 +307,7 @@ const CustomCalendar: React.FC<Props> = ({
               setListOfDate(currentMonthDate);
             }}
           >
-            <Icon name="keyboard-arrow-right" size={28} color="grey" />
+            <ChevronRight size={24} color="grey" />
           </MyPressable>
         </View>
       </View>

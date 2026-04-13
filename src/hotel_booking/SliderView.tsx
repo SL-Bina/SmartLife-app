@@ -7,9 +7,7 @@ const SliderView: React.FC = () => {
 
   return (
     <Slider
-      containerStyle={{ marginHorizontal: 16, marginBottom: 12 }}
-      trackStyle={{ height: 6 }}
-      thumbStyle={styles.thumbStyle}
+      style={{ marginHorizontal: 16, marginBottom: 12 }}
       step={1}
       minimumValue={0}
       maximumValue={100}
@@ -24,7 +22,14 @@ const SliderView: React.FC = () => {
           Less than {(distValue / 10).toFixed(1)} km
         </Text>
       )}
-      onValueChange={(value: Array<number>) => setDistValue(value[0] ?? 0)}
+      onValueChange={(value: number | number[]) => {
+        if (Array.isArray(value)) {
+          setDistValue(value[0] ?? 0);
+          return;
+        }
+
+        setDistValue(value ?? 0);
+      }}
     />
   );
 };

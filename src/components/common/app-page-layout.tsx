@@ -3,6 +3,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -43,6 +44,8 @@ type AppPageLayoutProps = {
   onMtkDropdownOpen?: () => void;
   onReachEnd?: () => void;
   reachEndOffset?: number;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 export default function AppPageLayout({
@@ -66,8 +69,11 @@ export default function AppPageLayout({
   onMtkDropdownOpen,
   onReachEnd,
   reachEndOffset = 140,
+  refreshing = false,
+  onRefresh,
 }: AppPageLayoutProps) {
   const { width, fontScale } = useWindowDimensions();
+  const isAndroid = Platform.OS === 'android';
   const insets = useSafeAreaInsets();
   const { unreadCount } = useNotificationUnreadCount();
   const { selectedRouteOptions } = useQuickNavigationRoutes();
@@ -99,6 +105,10 @@ export default function AppPageLayout({
 
   const layoutPaddingTop = insets.top + responsiveMetrics.layoutTopPadding;
   const layoutPaddingBottom = Math.max(insets.bottom, 0) + responsiveMetrics.layoutBottomPadding;
+  const refreshProgressOffset = React.useMemo(
+    () => Math.round(insets.top + responsiveMetrics.topOffset + responsiveMetrics.topButtonSize + 6),
+    [insets.top, responsiveMetrics.topButtonSize, responsiveMetrics.topOffset],
+  );
   const blockStyle = React.useMemo(
     () => ({ height: responsiveMetrics.layoutTopBlock }),
     [responsiveMetrics.layoutTopBlock],
@@ -181,21 +191,32 @@ export default function AppPageLayout({
           style={styles.scrollView}
           contentContainerStyle={scrollContentStyle}
           showsVerticalScrollIndicator={false}
-          bounces={false}
-          alwaysBounceVertical={false}
+          bounces={!isAndroid && Boolean(onRefresh)}
+          alwaysBounceVertical={!isAndroid && Boolean(onRefresh)}
           alwaysBounceHorizontal={false}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
           automaticallyAdjustsScrollIndicatorInsets={false}
           scrollToOverflowEnabled={false}
-          overScrollMode="never"
+          overScrollMode={isAndroid ? 'auto' : 'always'}
           nestedScrollEnabled={false}
-          decelerationRate={Platform.OS === 'ios' ? 'fast' : 'normal'}
+          decelerationRate={Platform.OS === 'ios' ? 'normal' : 'normal'}
+          refreshControl={onRefresh
+            ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={isDark ? '#7dd3fc' : '#2563eb'}
+                colors={['#2563eb']}
+                progressViewOffset={refreshProgressOffset}
+              />
+            )
+            : undefined}
           onContentSizeChange={() => {
             reachEndLockedRef.current = false;
           }}
           onScroll={onReachEnd ? onScroll : undefined}
-          scrollEventThrottle={16}
+          scrollEventThrottle={isAndroid ? 32 : 16}
         >
           {children}
         </ScrollView>

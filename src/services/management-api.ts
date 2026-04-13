@@ -1001,6 +1001,24 @@ export const financeInvoicesAPI = {
     throw new Error(toStringValue(pick<unknown>(payload, 'message')) || 'Failed to pay invoices');
   },
 
+  addBalanceInCash: async (
+    propertyId: number | string,
+    amount: number | string,
+    balanceType: 'cash' | string = 'cash',
+  ) => {
+    const payload = await api.post('/module/finance/add-balance-in-cash', {
+      property_id: propertyId,
+      amount,
+      balance_type: balanceType,
+    });
+
+    if (pick<boolean>(payload, 'success') === false) {
+      throw new Error(toStringValue(pick<unknown>(payload, 'message')) || 'Failed to add balance');
+    }
+
+    return payload;
+  },
+
   fetchInvoices: async (filters: InvoiceFilters = {}, page = 1, itemsPerPage = 20) => {
     const query = buildInvoiceParams(filters, page, itemsPerPage);
     const payload = await api.get(`${SEARCH_BASES.invoice}?${query.toString()}`);

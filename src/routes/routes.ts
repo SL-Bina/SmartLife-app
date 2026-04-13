@@ -213,7 +213,6 @@ export const routes: AppRouteLayout[] = [
         label: 'Bildirişlər',
         path: '/notifications',
         routeKey: 'notifications',
-        moduleName: 'notification',
       },
       {
         icon: 'help-center',

@@ -10,7 +10,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {
+  ArrowLeft,
+  ArrowUpDown,
+  ChevronRight,
+  Heart,
+  MapPin,
+  Search,
+} from 'lucide-react-native';
 import CustomerCalendar from './CalendarPopupView';
 import FilterModal from './FiltersModal';
 import HotelListItem from './HotelListItem';
@@ -45,6 +52,44 @@ const HotelHomeScreen: React.FC = () => {
   });
   const [showCal, setShowCal] = useState<boolean>(false);
   const [showFilter, setShowFilter] = useState<boolean>(false);
+  const [searchText, setSearchText] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  const onBackPress = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    (navigation as any).navigate('MainDrawer');
+  }, [navigation]);
+
+  const onOpenDesignCourse = useCallback(() => {
+    (navigation as any).navigate('DesignCourse');
+  }, [navigation]);
+
+  const filteredHotels = React.useMemo(() => {
+    const query = appliedSearch.trim().toLowerCase();
+    if (!query) {
+      return HOTEL_LIST;
+    }
+
+    const matched = HOTEL_LIST.filter(item => {
+      if (item.id === 0) {
+        return true;
+      }
+
+      const title = item.titleTxt.toLowerCase();
+      const subtitle = item.subTxt.toLowerCase();
+      return title.includes(query) || subtitle.includes(query);
+    });
+
+    if (matched.length === 0) {
+      return HOTEL_LIST.slice(0, 1);
+    }
+
+    return matched;
+  }, [appliedSearch]);
 
   const contentHeader = (
     <View style={{ backgroundColor: 'rgb(242, 242, 242)' }}>
@@ -54,14 +99,18 @@ const HotelHomeScreen: React.FC = () => {
           placeholder="London..."
           placeholderTextColor="#3c3c434c"
           selectionColor="#54D3C2"
+          value={searchText}
+          onChangeText={setSearchText}
+          onSubmitEditing={() => setAppliedSearch(searchText)}
         />
         <View style={styles.searchBtnContainer}>
           <MyPressable
             style={styles.searchBtn}
             android_ripple={{ color: 'grey', radius: 28, borderless: true }}
             touchOpacity={0.6}
+            onPress={() => setAppliedSearch(searchText)}
           >
-            <Icon name="search" size={30} color="white" />
+            <Search size={28} color="white" />
           </MyPressable>
         </View>
       </View>
@@ -86,6 +135,16 @@ const HotelHomeScreen: React.FC = () => {
           <Text style={styles.sectionText}>1 Room - 2 Adults</Text>
         </View>
       </View>
+
+      <View style={styles.demoButtonRow}>
+        <MyPressable
+          style={styles.demoButton}
+          touchOpacity={0.7}
+          onPress={onOpenDesignCourse}
+        >
+          <Text style={styles.demoButtonText}>Open Design Course Demo</Text>
+        </MyPressable>
+      </View>
     </View>
   );
 
@@ -102,12 +161,9 @@ const HotelHomeScreen: React.FC = () => {
               onPress={() => setShowFilter(true)}
             >
               <Text style={styles.sectionText}>Filter</Text>
-              <Icon
-                style={{ paddingHorizontal: 8 }}
-                name="sort"
-                size={24}
-                color="#54D3C2"
-              />
+              <View style={{ paddingHorizontal: 8 }}>
+                <ArrowUpDown size={20} color="#54D3C2" />
+              </View>
             </MyPressable>
           </View>
         </View>
@@ -128,9 +184,9 @@ const HotelHomeScreen: React.FC = () => {
           <MyPressable
             style={{ padding: 8 }}
             android_ripple={{ color: 'grey', radius: 20, borderless: true }}
-            onPress={navigation.goBack}
+            onPress={onBackPress}
           >
-            <Icon name="arrow-back" size={25} color="black" />
+            <ArrowLeft size={22} color="black" />
           </MyPressable>
         </View>
         <View
@@ -144,18 +200,19 @@ const HotelHomeScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <Icon
-            style={{ paddingRight: 8 }}
-            name="favorite-border"
-            size={25}
-            color="black"
-          />
-          <Icon
-            style={{ paddingHorizontal: 8 }}
-            name="location-pin"
-            size={25}
-            color="black"
-          />
+          <MyPressable
+            style={styles.topCourseBtn}
+            touchOpacity={0.7}
+            onPress={onOpenDesignCourse}
+          >
+            <Text style={styles.topCourseBtnText}>Course</Text>
+          </MyPressable>
+          <View style={{ paddingRight: 8 }}>
+            <Heart size={22} color="black" />
+          </View>
+          <View style={{ paddingHorizontal: 8 }}>
+            <MapPin size={22} color="black" />
+          </View>
         </View>
       </View>
 
@@ -165,10 +222,21 @@ const HotelHomeScreen: React.FC = () => {
           stickyHeaderIndices={[1]}
           nestedScrollEnabled
           ListHeaderComponent={contentHeader}
-          data={HOTEL_LIST}
+          data={filteredHotels}
           renderItem={renderItem}
           keyExtractor={item => item.id.toString()}
         />
+      </View>
+
+      <View style={[styles.quickNavWrap, { bottom: inset.bottom + 18 }]}> 
+        <MyPressable
+          style={styles.quickNavButton}
+          touchOpacity={0.8}
+          onPress={onOpenDesignCourse}
+        >
+          <Text style={styles.quickNavText}>Design Course</Text>
+          <ChevronRight size={18} color="white" />
+        </MyPressable>
       </View>
 
       <CustomerCalendar
@@ -211,8 +279,21 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     flexGrow: 1,
     flexBasis: 0,
+  },
+  topCourseBtn: {
+    borderRadius: 10,
+    backgroundColor: '#132137',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+  },
+  topCourseBtnText: {
+    color: 'white',
+    fontSize: 12,
+    fontFamily: 'WorkSans-SemiBold',
   },
   container: {
     flex: 1,
@@ -277,6 +358,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
+  demoButtonRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  demoButton: {
+    borderRadius: 12,
+    backgroundColor: '#132137',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'WorkSans-SemiBold',
+  },
   stickyHeaderContainer: {
     backgroundColor: 'white',
     flexDirection: 'row',
@@ -289,6 +386,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     alignSelf: 'center',
     fontFamily: 'WorkSans-Regular',
+  },
+  quickNavWrap: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 30,
+  },
+  quickNavButton: {
+    borderRadius: 999,
+    backgroundColor: '#132137',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: 'black',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  quickNavText: {
+    color: 'white',
+    fontSize: 13,
+    fontFamily: 'WorkSans-SemiBold',
   },
 });
 

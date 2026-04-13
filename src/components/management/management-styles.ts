@@ -751,6 +751,26 @@ export const managementStyles = StyleSheet.create({
     gap: 12,
     marginTop: 14,
   },
+  detailsFooter: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  detailsFooterLight: {
+    borderTopColor: '#e2e8f0',
+  },
+  detailsFooterDark: {
+    borderTopColor: '#303036',
+  },
+  detailsBody: {
+    flex: 1,
+    minHeight: 120,
+  },
+  detailsScroll: {
+    flex: 1,
+  },
   footerButton: {
     flex: 1,
     minHeight: 50,
@@ -763,6 +783,9 @@ export const managementStyles = StyleSheet.create({
   },
   footerPrimaryButton: {
     backgroundColor: '#2563eb',
+  },
+  footerDangerButton: {
+    backgroundColor: '#dc2626',
   },
   footerGhostText: {
     color: '#fff',
@@ -779,6 +802,76 @@ export const managementStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     flexWrap: 'wrap',
+  },
+  detailsTitleWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  detailsSubtitle: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: 'WorkSans-Medium',
+  },
+  detailsHeaderActions: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailsCountBadge: {
+    minWidth: 40,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  detailsCountBadgeLight: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  detailsCountBadgeDark: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  detailsCountText: {
+    fontSize: 12,
+    fontFamily: 'WorkSans-Bold',
+  },
+  detailCardsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  detailCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  detailCardHalf: {
+    minWidth: '47%',
+    flexGrow: 1,
+  },
+  detailCardFull: {
+    width: '100%',
+  },
+  detailCardLabel: {
+    fontSize: 11,
+    fontFamily: 'WorkSans-SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  detailCardValue: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  detailCardMeta: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontFamily: 'WorkSans-Regular',
   },
   detailsGrid: {
     gap: 10,
@@ -797,6 +890,51 @@ export const managementStyles = StyleSheet.create({
     backgroundColor: '#18181b',
     borderColor: '#303036',
   },
+  detailRowTopLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  detailRowLabelStrong: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'WorkSans-Bold',
+  },
+  detailDepthBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  detailDepthBadgeLight: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#dbe4ef',
+  },
+  detailDepthBadgeDark: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+  },
+  detailDepthBadgeText: {
+    fontSize: 10,
+    fontFamily: 'WorkSans-SemiBold',
+  },
+  detailPathChip: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  detailPathChipLight: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+  },
+  detailPathChipDark: {
+    backgroundColor: '#0f1115',
+    borderColor: '#2d3138',
+  },
   detailRowLabel: {
     fontSize: 11,
     fontFamily: 'WorkSans-SemiBold',
@@ -805,7 +943,21 @@ export const managementStyles = StyleSheet.create({
   detailRowPath: {
     fontSize: 10,
     fontFamily: 'WorkSans-Regular',
-    marginBottom: 2,
+    marginBottom: 0,
+  },
+  detailValueWrap: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  detailValueWrapLight: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  detailValueWrapDark: {
+    backgroundColor: '#121418',
+    borderColor: '#2d3138',
   },
   detailRowValue: {
     fontSize: 14,

@@ -37,10 +37,16 @@ declare module '@miblanchard/react-native-slider' {
     disabled?: boolean;
     maximumValue?: number;
     minimumValue?: number;
+    containerStyle?: any;
+    trackStyle?: any;
+    thumbStyle?: any;
     onValueChange?: (value: number | number[]) => void;
     onSlidingStart?: (value: number | number[]) => void;
     onSlidingComplete?: (value: number | number[]) => void;
     step?: number;
+    animateTransitions?: boolean;
+    animationType?: 'spring' | 'timing';
+    renderAboveThumbComponent?: (...args: any[]) => React.ReactNode;
     maximumTrackTintColor?: string;
     minimumTrackTintColor?: string;
     thumbTintColor?: string;

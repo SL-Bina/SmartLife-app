@@ -47,4 +47,11 @@ export type ManagementEntityScreenProps = {
   emptyMessage?: string;
   enablePropertyBinding?: boolean;
   enableFieldReset?: boolean;
+  renderDetailsExtra?: (args: {
+    item: EntityItem;
+    isDark: boolean;
+    closeDetails: () => void;
+    reopenDetails: () => void;
+    refreshItems: () => Promise<void>;
+  }) => React.ReactNode;
 };

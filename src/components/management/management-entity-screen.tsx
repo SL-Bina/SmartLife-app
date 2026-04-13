@@ -46,6 +46,7 @@ export default function ManagementEntityScreen({
   emptyMessage = 'Məlumat yoxdur',
   enablePropertyBinding = false,
   enableFieldReset = false,
+  renderDetailsExtra,
 }: ManagementEntityScreenProps) {
   const ITEMS_PER_PAGE = 50;
   const { resolvedTheme } = useThemeMode();
@@ -113,8 +114,8 @@ export default function ManagementEntityScreen({
     [isBlockEntity, isPropertyEntity, isResidentEntity],
   );
   const requiresBlockFilter = React.useMemo(
-    () => isPropertyEntity,
-    [isPropertyEntity],
+    () => isPropertyEntity || isResidentEntity,
+    [isPropertyEntity, isResidentEntity],
   );
   const requiresMtkFilter = React.useMemo(
     () => entityLabel.trim().toLowerCase() !== 'mtk',
@@ -732,6 +733,9 @@ export default function ManagementEntityScreen({
           if (effectiveSelectedBuildingId !== null) {
             params.building_ids = [effectiveSelectedBuildingId];
           }
+          if (effectiveSelectedBlockId !== null) {
+            params.block_ids = [effectiveSelectedBlockId];
+          }
         } else if (isBlockEntity && effectiveSelectedBuildingId !== null) {
           params.building_ids = [effectiveSelectedBuildingId];
           if (effectiveSelectedComplexId !== null) {
@@ -1055,6 +1059,26 @@ export default function ManagementEntityScreen({
   const showBuildingSelect = requiresBuildingFilter && effectiveSelectedComplexId !== null;
   const showBlockSelect = requiresBlockFilter && effectiveSelectedBuildingId !== null;
 
+  const detailsExtraContent = detailsItem && renderDetailsExtra
+    ? renderDetailsExtra({
+        item: detailsItem,
+        isDark,
+        closeDetails: closeDetailsModal,
+        reopenDetails: () => {
+          setDetailsItem(detailsItem);
+          setDetailsVisible(true);
+        },
+        refreshItems: async () => {
+          await loadItems({
+            useSearch: appliedSearch.length > 0,
+            searchValue: appliedSearch,
+            page: 1,
+            append: false,
+          });
+        },
+      })
+    : null;
+
   return (
     <AppPageLayout
       title={title}
@@ -1225,6 +1249,7 @@ export default function ManagementEntityScreen({
         isDark={isDark}
         entityLabel={entityLabel}
         detailsRows={detailsRows}
+        extraContent={detailsExtraContent}
         onClose={closeDetailsModal}
         onEdit={onEditFromDetails}
         onDelete={onDeleteFromDetails}

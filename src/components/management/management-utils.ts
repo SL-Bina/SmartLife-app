@@ -312,12 +312,130 @@ const toDetailLabel = (path: string): string =>
     .map(part => part.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
     .join(' / ');
 
-const toDetailValue = (value: unknown): string => {
-  if (value === null) return 'null';
-  if (value === undefined) return 'undefined';
+const DETAIL_DATE_FORMATTER = new Intl.DateTimeFormat('az-AZ', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const hasDateSemantic = (path: string): boolean => {
+  const normalized = path.toLowerCase();
+  return /(^|\.)(created_at|updated_at|deleted_at|date|time|start_at|end_at|expires_at|birth_date|dob)$/.test(
+    normalized,
+  );
+};
+
+const toDateObject = (value: unknown): Date | null => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const millis = value < 1_000_000_000_000 ? value * 1000 : value;
+    const date = new Date(millis);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
 
   if (typeof value === 'string') {
-    return value.length > 0 ? value : '(boş mətn)';
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed);
+      if (Number.isFinite(numeric)) {
+        const millis = numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+        const numericDate = new Date(millis);
+        if (!Number.isNaN(numericDate.getTime())) {
+          return numericDate;
+        }
+      }
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const formatDateTime = (value: unknown): string | null => {
+  const date = toDateObject(value);
+  if (!date) {
+    return null;
+  }
+
+  return DETAIL_DATE_FORMATTER.format(date);
+};
+
+const toPathLeaf = (path: string): { parentPath: string; leaf: string } => {
+  const parts = path.split('.').filter(Boolean);
+  const leaf = parts[parts.length - 1] || '';
+  const parentPath = parts.slice(0, -1).join('.');
+  return { parentPath, leaf };
+};
+
+const toCandidatePath = (parentPath: string, key: string): string => {
+  return parentPath ? `${parentPath}.${key}` : key;
+};
+
+const getTextFromPath = (item: EntityItem, path: string): string | null => {
+  const value = getValueByPath(item, path);
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  return null;
+};
+
+const resolveRelationName = (item: EntityItem, path: string): string | null => {
+  const { parentPath, leaf } = toPathLeaf(path);
+  if (!leaf.endsWith('_id')) {
+    return null;
+  }
+
+  const relation = leaf.slice(0, -3);
+  if (!relation) {
+    return null;
+  }
+
+  const candidates = [
+    toCandidatePath(parentPath, `${relation}.name`),
+    toCandidatePath(parentPath, `${relation}.title`),
+    toCandidatePath(parentPath, `${relation}.full_name`),
+    toCandidatePath(parentPath, `${relation}.fullname`),
+    toCandidatePath(parentPath, `${relation}.username`),
+    toCandidatePath(parentPath, `${relation}.email`),
+    toCandidatePath(parentPath, `${relation}_name`),
+    toCandidatePath(parentPath, `${relation}Name`),
+  ];
+
+  for (const candidate of candidates) {
+    const text = getTextFromPath(item, candidate);
+    if (text) {
+      return text;
+    }
+  }
+
+  return null;
+};
+
+const toDetailValue = (value: unknown): string => {
+  if (value === null || value === undefined) return 'Məlumat daxil edilməyib';
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0 ? value : 'Məlumat daxil edilməyib';
   }
 
   if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
@@ -328,6 +446,25 @@ const toDetailValue = (value: unknown): string => {
     return value.toISOString();
   }
 
+  if (Array.isArray(value)) {
+    return value.length > 0
+      ? `Siyahı məlumatı (${value.length} element)`
+      : 'Siyahı məlumatı yoxdur';
+  }
+
+  if (value && typeof value === 'object') {
+    const record = toRecord(value);
+    const preferred = [record.name, record.title, record.full_name, record.username, record.email];
+
+    for (const candidate of preferred) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        return candidate;
+      }
+    }
+
+    return 'Əlavə struktur məlumatı mövcuddur';
+  }
+
   try {
     return JSON.stringify(value);
   } catch {
@@ -335,50 +472,69 @@ const toDetailValue = (value: unknown): string => {
   }
 };
 
-const pushDetailRow = (
-  rows: DetailRow[],
-  path: string,
-  value: string,
-  depth: number,
-) => {
+const toDisplayDetailValue = (item: EntityItem, path: string, value: unknown): string => {
+  const relationName = resolveRelationName(item, path);
+  if (relationName) {
+    return relationName;
+  }
+
+  if (hasDateSemantic(path)) {
+    const formatted = formatDateTime(value);
+    if (formatted) {
+      return formatted;
+    }
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    const looksLikeDateValue = /^\d{4}-\d{2}-\d{2}/.test(normalized) || normalized.includes('T');
+
+    if (looksLikeDateValue) {
+      const formatted = formatDateTime(normalized);
+      if (formatted) {
+        return formatted;
+      }
+    }
+  }
+
+  return toDetailValue(value);
+};
+
+const pushDetailRow = (rows: DetailRow[], path: string, label: string, value: string) => {
   const safePath = path.length > 0 ? path : 'root';
   rows.push({
     key: `${safePath}::${rows.length}`,
     path: safePath,
-    label: toDetailLabel(safePath),
+    label,
     value,
-    depth,
+    depth: 0,
   });
 };
 
-const appendDetailRows = (
+const shouldRenderAsDetail = (value: unknown): boolean => {
+  if (value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return true;
+};
+
+const tryAppendDetail = (
   rows: DetailRow[],
-  value: unknown,
+  item: EntityItem,
   path: string,
-  depth: number,
+  label: string,
+  seen: Set<string>,
 ) => {
-  if (Array.isArray(value)) {
-    pushDetailRow(rows, path, `Array (${value.length})`, depth);
-
-    value.forEach((entry, index) => {
-      appendDetailRows(rows, entry, `${path}[${index}]`, depth + 1);
-    });
+  if (!path || seen.has(path)) {
     return;
   }
 
-  if (value && typeof value === 'object') {
-    const record = toRecord(value);
-    const keys = Object.keys(record);
-    pushDetailRow(rows, path, `Obyekt (${keys.length})`, depth);
-
-    keys.forEach(key => {
-      const nextPath = path.length > 0 ? `${path}.${key}` : key;
-      appendDetailRows(rows, record[key], nextPath, depth + 1);
-    });
+  const value = getValueByPath(item, path);
+  if (!shouldRenderAsDetail(value)) {
     return;
   }
 
-  pushDetailRow(rows, path, toDetailValue(value), depth);
+  pushDetailRow(rows, path, label, toDisplayDetailValue(item, path, value));
+  seen.add(path);
 };
 
 export const toDetailRows = (
@@ -390,17 +546,38 @@ export const toDetailRows = (
   }
 
   const rows: DetailRow[] = [];
+  const seen = new Set<string>();
 
-  const preferredKeys = fields
-    .map(field => field.key)
-    .filter(key => getValueByPath(item, key) !== undefined);
-
-  const remainingKeys = Object.keys(item).filter(key => !preferredKeys.includes(key));
-  const orderedKeys = [...preferredKeys, ...remainingKeys];
-
-  orderedKeys.forEach(key => {
-    appendDetailRows(rows, getValueByPath(item, key), key, 0);
+  fields.forEach(field => {
+    const label = field.label?.trim() || toDetailLabel(field.key);
+    tryAppendDetail(rows, item, field.key, label, seen);
   });
+
+  const fallbackFields: Array<{ key: string; label: string }> = [
+    { key: 'id', label: 'ID' },
+    { key: 'status', label: 'Status' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Telefon' },
+    { key: 'address', label: 'Ünvan' },
+    { key: 'created_at', label: 'Yaradılma tarixi' },
+    { key: 'updated_at', label: 'Yenilənmə tarixi' },
+  ];
+
+  fallbackFields.forEach(field => {
+    tryAppendDetail(rows, item, field.key, field.label, seen);
+  });
+
+  if (rows.length === 0) {
+    Object.keys(item).forEach(key => {
+      const value = item[key];
+      if (value && typeof value === 'object') {
+        return;
+      }
+
+      const label = toDetailLabel(key);
+      tryAppendDetail(rows, item, key, label, seen);
+    });
+  }
 
   return rows;
 };

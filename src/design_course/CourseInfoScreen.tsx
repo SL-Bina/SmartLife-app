@@ -65,6 +65,15 @@ const CourseInfoScreen: React.FC = () => {
     ]).start();
   }, []);
 
+  const onBackPress = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    (navigation as any).navigate('MainDrawer');
+  };
+
   const getTimeBoxUI = (text1: string, text2: string) => (
     <View style={styles.timeBoxContainer}>
       <Text style={[styles.textStyle, styles.timeBoxTitle]}>{text1}</Text>
@@ -151,7 +160,7 @@ const CourseInfoScreen: React.FC = () => {
         <MyPressable
           style={[styles.backBtn, { marginTop }]}
           android_ripple={{ color: 'darkgrey', borderless: true, radius: 28 }}
-          onPress={() => navigation.goBack()}
+          onPress={onBackPress}
         >
           <Icon name="arrow-back-ios" size={24} color="black" />
         </MyPressable>
